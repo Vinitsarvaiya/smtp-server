@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Temporary Email</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="panel">
+        <h1>Temporary Email</h1>
+        <p class="subtitle">Receive emails without using your personal inbox.</p>
+
+        <div class="address-block">
+          <div>
+            <p class="label">Your temporary email</p>
+            <p id="address" class="address">Creating address...</p>
+            <p id="expiry" class="meta"></p>
+          </div>
+          <button id="copyButton" type="button">Copy</button>
+        </div>
+
+        <div class="actions">
+          <button id="newAddressButton" type="button">New Address</button>
+          <button id="refreshButton" type="button">Refresh Inbox</button>
+          <button id="deleteButton" type="button" class="danger">Delete</button>
+        </div>
+
+        <div id="status" class="status" aria-live="polite"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <h2>Inbox</h2>
+          <span id="messageCount" class="meta"></span>
+        </div>
+        <div id="messages" class="messages"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Email Viewer</h2>
+        <div id="viewer" class="viewer empty">Select a message to read it.</div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+  </html>
