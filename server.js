@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 const supabase = getSupabaseAdmin();
 
-app.use(express.json({ limit: "5mb" }));
+app.use("/api/webhooks", express.raw({ type: "application/json", limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 function sendHealth(res) {
@@ -26,6 +26,7 @@ function sendHealth(res) {
 app.get("/health", (req, res) => sendHealth(res));
 app.get("/api/health", (req, res) => sendHealth(res));
 
+app.use(express.json({ limit: "5mb" }));
 app.use("/api/inbox", createInboxRouter(supabase));
 app.use("/api/messages", createMessageRouter(supabase));
 app.use("/api/webhooks", createWebhookRouter(supabase));

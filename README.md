@@ -65,6 +65,7 @@ SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxxxx
 TEMP_MAIL_DOMAIN=fujitoratakoriko.publicvm.com
 WEBHOOK_SECRET=choose-a-long-random-secret
+RESEND_WEBHOOK_SECRET=whsec_xxxxx
 EMAIL_EXPIRY_HOURS=24
 ```
 
@@ -105,6 +106,21 @@ The backend normalizes common alternate fields too:
 - `html_body`
 - `message_id`
 
+The same endpoint also supports Resend `email.received` webhooks. For Resend:
+
+- configure the webhook signing secret as `RESEND_WEBHOOK_SECRET`
+- send the webhook to `/api/webhooks/incoming-email`
+- the app verifies `svix-id`, `svix-timestamp`, and `svix-signature` using the raw request body
+
+Resend `email.received` events only include metadata in the webhook payload. This app stores:
+
+- `data.from`
+- the first recipient in `data.to`
+- `data.subject`
+- `data.message_id` or `data.email_id`
+
+The text and HTML body fields remain empty unless you later extend the app to fetch full content from Resend's Receiving API.
+
 ## 7. Deploy to Render
 
 Create one Render Web Service.
@@ -119,6 +135,7 @@ Set these environment variables in Render:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `TEMP_MAIL_DOMAIN`
 - `WEBHOOK_SECRET`
+- `RESEND_WEBHOOK_SECRET`
 - `EMAIL_EXPIRY_HOURS`
 
 The server listens on `0.0.0.0` and uses `process.env.PORT || 3000`.
@@ -169,6 +186,7 @@ The MX records depend on whichever inbound provider you choose later.
 
 - Supabase service-role key is used only on the backend.
 - Webhook supports `Authorization: Bearer <secret>` and `x-webhook-secret: <secret>`.
+- Resend webhooks are verified with `RESEND_WEBHOOK_SECRET` and the Svix signature headers.
 - Recipients are normalized to lowercase and validated against `TEMP_MAIL_DOMAIN`.
 - Duplicate `messageId` deliveries are ignored.
 - Request JSON body is limited to 5 MB.
