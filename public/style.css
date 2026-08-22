@@ -122,6 +122,19 @@ button.danger:hover {
   padding-left: 20px;
 }
 
+.raw-message {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
 .viewer.empty {
   color: #5a6a80;
 }

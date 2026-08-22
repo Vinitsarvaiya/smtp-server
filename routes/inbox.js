@@ -7,6 +7,14 @@ function isMissingColumnError(error, columnName) {
   return error && error.code === "42703" && String(error.message || "").includes(columnName);
 }
 
+function isMissingSchemaFieldError(error, fieldName) {
+  return (
+    error &&
+    (error.code === "42703" || error.code === "PGRST204") &&
+    String(error.message || "").includes(fieldName)
+  );
+}
+
 function createInboxRouter(supabase) {
   const router = express.Router();
 
@@ -41,11 +49,16 @@ function createInboxRouter(supabase) {
 
       let { data, error } = await supabase
         .from("messages")
-        .select("id, sender, recipient, subject, text_body, html_body, content_type, attachments, received_at")
+        .select("id, sender, recipient, subject, text_body, html_body, content_type, attachments, headers, raw_email, received_at")
         .eq("inbox_address", address)
         .order("received_at", { ascending: false });
 
-      if (isMissingColumnError(error, "content_type")) {
+      if (
+        isMissingSchemaFieldError(error, "content_type") ||
+        isMissingSchemaFieldError(error, "attachments") ||
+        isMissingSchemaFieldError(error, "headers") ||
+        isMissingSchemaFieldError(error, "raw_email")
+      ) {
         ({ data, error } = await supabase
           .from("messages")
           .select("id, sender, recipient, subject, text_body, html_body, received_at")

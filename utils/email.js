@@ -93,6 +93,14 @@ function extractContentType(payload) {
   );
 }
 
+function extractHeaders(payload) {
+  if (!payload.headers || typeof payload.headers !== "object" || Array.isArray(payload.headers)) {
+    return null;
+  }
+
+  return payload.headers;
+}
+
 function isValidRecipientForDomain(recipient, domain) {
   if (!recipient || !domain) {
     return false;
@@ -116,6 +124,7 @@ function normalizeIncomingEmail(payload) {
   const html = extractBody(payload, "html");
   const attachments = extractAttachments(payload);
   const contentType = extractContentType(payload);
+  const headers = extractHeaders(payload);
   const messageId = firstNonEmptyString(
     payload.messageId,
     payload.message_id,
@@ -132,7 +141,8 @@ function normalizeIncomingEmail(payload) {
     html,
     messageId,
     attachments,
-    contentType
+    contentType,
+    headers
   };
 }
 

@@ -18,6 +18,8 @@ create table if not exists public.messages (
   message_id text unique,
   content_type text,
   attachments jsonb not null default '[]'::jsonb,
+  headers jsonb,
+  raw_email text,
   raw_payload jsonb,
   received_at timestamptz not null default now(),
   created_at timestamptz not null default now()
@@ -28,6 +30,12 @@ alter table public.messages
 
 alter table public.messages
   add column if not exists attachments jsonb not null default '[]'::jsonb;
+
+alter table public.messages
+  add column if not exists headers jsonb;
+
+alter table public.messages
+  add column if not exists raw_email text;
 
 alter table public.messages
   add column if not exists raw_payload jsonb;

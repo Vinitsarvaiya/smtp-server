@@ -58,14 +58,32 @@ function renderMessages(messages) {
 
 function renderMessageBody(message) {
   viewerEl.classList.remove("empty");
-  const hasText = Boolean(message.text_body);
-  const hasHtml = Boolean(message.html_body);
+  const receivedEmail = message.raw_payload && message.raw_payload.received_email
+    ? message.raw_payload.received_email
+    : null;
+  const rawEmail = typeof message.raw_email === "string" && message.raw_email
+    ? message.raw_email
+    : message.raw_payload && typeof message.raw_payload.raw_email === "string"
+      ? message.raw_payload.raw_email
+    : "";
+  const headers = message.headers && typeof message.headers === "object"
+    ? message.headers
+    : receivedEmail && receivedEmail.headers && typeof receivedEmail.headers === "object"
+      ? receivedEmail.headers
+      : null;
+  const textBody = message.text_body || (receivedEmail && receivedEmail.text) || "";
+  const htmlBody = message.html_body || (receivedEmail && receivedEmail.html) || "";
+  const contentType = message.content_type || (receivedEmail && receivedEmail.headers && receivedEmail.headers["content-type"]) || "unknown";
+  const hasText = Boolean(textBody);
+  const hasHtml = Boolean(htmlBody);
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
   const content = hasText
-    ? `<div>${escapeHtml(message.text_body).replace(/\n/g, "<br />")}</div>`
+    ? `<div>${escapeHtml(textBody).replace(/\n/g, "<br />")}</div>`
     : hasHtml
-      ? `<iframe class="message-html-frame" title="HTML email preview" sandbox="" srcdoc="${escapeHtml(message.html_body)}"></iframe>`
-      : "<p>(No message body available)</p>";
+      ? `<iframe class="message-html-frame" title="HTML email preview" sandbox="" srcdoc="${escapeHtml(htmlBody)}"></iframe>`
+      : rawEmail
+        ? `<pre class="raw-message">${escapeHtml(rawEmail)}</pre>`
+        : "<p>(No message body available)</p>";
   const attachmentMarkup = attachments.length
     ? `
       <hr />
@@ -84,16 +102,32 @@ function renderMessageBody(message) {
       </ul>
     `
     : "";
+  const headerMarkup = headers
+    ? `
+      <hr />
+      <strong>Headers:</strong>
+      <pre class="raw-message">${escapeHtml(JSON.stringify(headers, null, 2))}</pre>
+    `
+    : "";
+  const rawMarkup = rawEmail
+    ? `
+      <hr />
+      <strong>Raw Email:</strong>
+      <pre class="raw-message">${escapeHtml(rawEmail)}</pre>
+    `
+    : "";
 
   viewerEl.innerHTML = `
     <strong>From:</strong> ${escapeHtml(message.sender || "")}<br />
     <strong>To:</strong> ${escapeHtml(message.recipient || "")}<br />
     <strong>Subject:</strong> ${escapeHtml(message.subject || "(No subject)")}<br />
-    <strong>Content-Type:</strong> ${escapeHtml(message.content_type || "unknown")}<br />
+    <strong>Content-Type:</strong> ${escapeHtml(contentType)}<br />
     <strong>Received:</strong> ${new Date(message.received_at).toLocaleString()}
     <hr />
     ${content}
     ${attachmentMarkup}
+    ${headerMarkup}
+    ${rawMarkup}
   `;
 }
 
