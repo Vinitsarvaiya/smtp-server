@@ -1,15 +1,28 @@
 const express = require("express");
 
+function isMissingColumnError(error, columnName) {
+  return error && error.code === "42703" && String(error.message || "").includes(columnName);
+}
+
 function createMessageRouter(supabase) {
   const router = express.Router();
 
   router.get("/:id", async (req, res, next) => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("messages")
-        .select("id, inbox_address, sender, recipient, subject, text_body, html_body, message_id, received_at, created_at")
-        .eq("id", req.params.id)
-        .maybeSingle();
+        .select("id, inbox_address, sender, recipient, subject, text_body, html_body, message_id, content_type, attachments, raw_payload, received_at, created_at")
+        .eq("id", req.params.id);
+
+      let { data, error } = await query.maybeSingle();
+
+      if (isMissingColumnError(error, "content_type")) {
+        ({ data, error } = await supabase
+          .from("messages")
+          .select("id, inbox_address, sender, recipient, subject, text_body, html_body, message_id, received_at, created_at")
+          .eq("id", req.params.id)
+          .maybeSingle());
+      }
 
       if (error) {
         throw error;

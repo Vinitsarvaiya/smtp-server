@@ -109,6 +109,19 @@ button.danger:hover {
   white-space: pre-wrap;
 }
 
+.message-html-frame {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.attachment-list {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
 .viewer.empty {
   color: #5a6a80;
 }

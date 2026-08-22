@@ -3,6 +3,10 @@ const { Webhook } = require("svix");
 const { ensureInboxExists } = require("../utils/inboxes");
 const { getTempMailDomain, isValidRecipientForDomain, normalizeIncomingEmail } = require("../utils/email");
 
+function isMissingColumnError(error, columnName) {
+  return error && error.code === "42703" && String(error.message || "").includes(columnName);
+}
+
 function hasValidWebhookSecret(req) {
   const configuredSecret = process.env.WEBHOOK_SECRET || "";
   if (!configuredSecret) {
@@ -43,16 +47,23 @@ function normalizeResendEmail(eventPayload) {
     return null;
   }
 
-  const firstRecipient = Array.isArray(eventPayload.data.to) ? eventPayload.data.to[0] : eventPayload.data.to;
-
-  return normalizeIncomingEmail({
+  const normalized = normalizeIncomingEmail({
     sender: eventPayload.data.from,
-    recipient: firstRecipient,
+    recipient: eventPayload.data.to,
     subject: eventPayload.data.subject,
-    text: "",
-    html: "",
+    text: eventPayload.data.text,
+    html: eventPayload.data.html,
+    text_body: eventPayload.data.text_body,
+    html_body: eventPayload.data.html_body,
+    content: eventPayload.data.content,
+    attachments: eventPayload.data.attachments,
+    contentType: eventPayload.data.content_type || eventPayload.data.mime_type,
+    headers: eventPayload.data.headers,
     messageId: eventPayload.data.message_id || eventPayload.data.email_id
   });
+
+  normalized.rawPayload = eventPayload.data;
+  return normalized;
 }
 
 function parseManualPayload(req) {
@@ -102,17 +113,36 @@ async function storeIncomingMessage(supabase, normalized) {
 
   await ensureInboxExists(supabase, normalized.recipient);
 
-  const { error } = await supabase
+  const payload = {
+    inbox_address: normalized.recipient,
+    sender: normalized.sender || null,
+    recipient: normalized.recipient,
+    subject: normalized.subject || null,
+    text_body: normalized.text || null,
+    html_body: normalized.html || null,
+    message_id: normalized.messageId || null,
+    content_type: normalized.contentType || null,
+    attachments: normalized.attachments || [],
+    raw_payload: normalized.rawPayload || null
+  };
+
+  let { error } = await supabase
     .from("messages")
-    .insert({
-      inbox_address: normalized.recipient,
-      sender: normalized.sender || null,
-      recipient: normalized.recipient,
-      subject: normalized.subject || null,
-      text_body: normalized.text || null,
-      html_body: normalized.html || null,
-      message_id: normalized.messageId || null
-    });
+    .insert(payload);
+
+  if (isMissingColumnError(error, "content_type")) {
+    ({ error } = await supabase
+      .from("messages")
+      .insert({
+        inbox_address: normalized.recipient,
+        sender: normalized.sender || null,
+        recipient: normalized.recipient,
+        subject: normalized.subject || null,
+        text_body: normalized.text || null,
+        html_body: normalized.html || null,
+        message_id: normalized.messageId || null
+      }));
+  }
 
   if (error) {
     throw error;
@@ -151,6 +181,7 @@ function createWebhookRouter(supabase) {
 
         const payload = parseManualPayload(req);
         normalized = normalizeIncomingEmail(payload);
+        normalized.rawPayload = payload;
       }
 
       const result = await storeIncomingMessage(supabase, normalized);

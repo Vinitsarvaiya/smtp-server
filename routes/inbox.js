@@ -3,6 +3,10 @@ const { cleanupExpiredInboxes } = require("../utils/cleanup");
 const { ensureInboxExists, findInbox, generateUniqueInbox } = require("../utils/inboxes");
 const { getTempMailDomain, normalizeAddress } = require("../utils/email");
 
+function isMissingColumnError(error, columnName) {
+  return error && error.code === "42703" && String(error.message || "").includes(columnName);
+}
+
 function createInboxRouter(supabase) {
   const router = express.Router();
 
@@ -35,11 +39,19 @@ function createInboxRouter(supabase) {
         return res.status(404).json({ success: false, error: "Inbox not found" });
       }
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("messages")
-        .select("id, sender, recipient, subject, text_body, html_body, received_at")
+        .select("id, sender, recipient, subject, text_body, html_body, content_type, attachments, received_at")
         .eq("inbox_address", address)
         .order("received_at", { ascending: false });
+
+      if (isMissingColumnError(error, "content_type")) {
+        ({ data, error } = await supabase
+          .from("messages")
+          .select("id, sender, recipient, subject, text_body, html_body, received_at")
+          .eq("inbox_address", address)
+          .order("received_at", { ascending: false }));
+      }
 
       if (error) {
         throw error;

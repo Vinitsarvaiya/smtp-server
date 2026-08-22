@@ -57,15 +57,43 @@ function renderMessages(messages) {
 }
 
 function renderMessageBody(message) {
-  const body = message.text_body || "(No text content available)";
   viewerEl.classList.remove("empty");
+  const hasText = Boolean(message.text_body);
+  const hasHtml = Boolean(message.html_body);
+  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+  const content = hasText
+    ? `<div>${escapeHtml(message.text_body).replace(/\n/g, "<br />")}</div>`
+    : hasHtml
+      ? `<iframe class="message-html-frame" title="HTML email preview" sandbox="" srcdoc="${escapeHtml(message.html_body)}"></iframe>`
+      : "<p>(No message body available)</p>";
+  const attachmentMarkup = attachments.length
+    ? `
+      <hr />
+      <strong>Attachments:</strong>
+      <ul class="attachment-list">
+        ${attachments
+          .map((attachment) => {
+            const parts = [
+              escapeHtml(attachment.filename || "Unnamed file"),
+              attachment.contentType ? escapeHtml(attachment.contentType) : "",
+              attachment.size ? `${escapeHtml(String(attachment.size))} bytes` : ""
+            ].filter(Boolean);
+            return `<li>${parts.join(" - ")}</li>`;
+          })
+          .join("")}
+      </ul>
+    `
+    : "";
+
   viewerEl.innerHTML = `
     <strong>From:</strong> ${escapeHtml(message.sender || "")}<br />
     <strong>To:</strong> ${escapeHtml(message.recipient || "")}<br />
     <strong>Subject:</strong> ${escapeHtml(message.subject || "(No subject)")}<br />
+    <strong>Content-Type:</strong> ${escapeHtml(message.content_type || "unknown")}<br />
     <strong>Received:</strong> ${new Date(message.received_at).toLocaleString()}
     <hr />
-    <div>${escapeHtml(body).replace(/\n/g, "<br />")}</div>
+    ${content}
+    ${attachmentMarkup}
   `;
 }
 
